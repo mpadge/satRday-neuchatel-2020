@@ -85,14 +85,6 @@ print (data.frame (category = names (res),
 ```
 
 ---
-
-## rOpenSci package authors
-
-```{r ros-registry-authors}
-head (sort (table (x$maintainer), decreasing = TRUE), 20)
-```
-
----
 class: center
 
 ```{r, echo = FALSE}
@@ -696,12 +688,11 @@ background-position: 0% 50%
 f <- function(x, y, z) {
     # function definition
 }
-imax <- .Machine$integer.max # something like 2,147,483,647
-nmax <- .Machine$double.xmax # something around 10 ^ 308
+
 for (i in seq(ntrials)) {
     tryCatch (
-        res <- f(runif(1, min = -imax, max = imax),
-                 rnorm(1, min = -nmax, max = nmax),
+        res <- f(runif(1, min = -Inf, max = Inf),
+                 rnorm(1, min = -Inf, max = Inf),
                  z = "<string>"),
               error = function(e) e
               )
@@ -722,12 +713,11 @@ background-position: 0% 50%
 f <- function(x, y, z) {
     # function definition
 }
-imax <- .Machine$integer.max # something like 2,147,483,647
-nmax <- .Machine$double.xmax # something around 10 ^ 308
+
 for (i in seq(ntrials)) {
     tryCatch (
-        res <- f(runif(runif(1e6), min = -imax, max = imax),
-                 rnorm(runif(1e6), min = -nmax, max = nmax),
+        res <- f(runif(runif(1e6), min = -Inf, max = Inf),
+                 rnorm(runif(1e6), min = -Inf, max = Inf),
                  z = "<string>"),
               error = function(e) e
               )
