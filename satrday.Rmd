@@ -1,0 +1,901 @@
+---
+title: "rOpenSci, peer review, statistical software, and testing"
+subtitle: "SatRdays ~~Neuchatel~~ anywhere"
+author: "Mark Padgham <br> rOpenSci<br>Münster, Germany"
+date: "Saturday 14th March, 2020"
+output:
+      xaringan::moon_reader:
+            #yolo:
+            #            img: img/fortune-beach.png
+            #            times: 2
+            lib_dir: libs
+            css: xaringan-themer.css
+            self_contained: true
+            mathjax: null
+            nature:
+                  highlightStyle: github
+                  highlightLines: true
+                  countIncrementalSlides: false
+---
+
+```{r xaringan, include = FALSE}
+library(xaringanthemer)
+source ("myxaringantheme.R")
+```
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)# suppress version num in subdir name
+
+knitr::opts_chunk$set(cache = TRUE,
+                      warning = FALSE)
+                      #message = FALSE)
+```
+
+class: left, middle, inverse
+
+
+.left-column[
+`r icon::fa_github(size = 2, animate = "spin")` mpadge
+
+`r icon::fa_github(size = 2, animate = "spin")` ropensci
+]
+
+.right-column[
+`r icon::fa_twitter(size = 2, animate = "spin")` bikesRdata
+
+`r icon::fa_envelope(size = 1)` .small[mark@ropensci.org]<br><br>
+
+`r icon::ii_ios_world_outline(size = 5)` mpadge.github.io
+]
+
+.box-bottom[
+slides at <br>
+[https://github.com/mpadge/satRday-neuchatel-2020](https://github.com/mpadge/satRday-neuchatel-2020)
+]
+
+---
+
+[![](images/ropensci-logo.svg)](https://ropensci.org)
+
+
+
+---
+
+## rOpenSci packages
+
+```{r ros-registry}
+url <- "https://ropensci.github.io/roregistry/registry.json"
+x <- jsonlite::fromJSON(url)$packages
+names (x)
+nrow (x)
+```
+
+---
+
+## rOpenSci package categories
+
+```{r ros-registry-categories-fake, eval = FALSE}
+table (x$ropensci_category)
+```
+```{r ros-registry-categories, echo = FALSE}
+res <- table (x$ropensci_category)
+print (data.frame (category = names (res),
+                   n = as.integer (res)),
+       row.names = FALSE)
+```
+
+---
+
+## rOpenSci package authors
+
+```{r ros-registry-authors}
+head (sort (table (x$maintainer), decreasing = TRUE), 20)
+```
+
+---
+class: center
+
+```{r, echo = FALSE}
+knitr::include_graphics ("./images/ropensci-logo.svg")
+```
+
+.large[
+[github.com/ropensci](https://github.com/ropensci) <br>
+[ropensci.org](https://ropensci.org)
+]
+
+
+---
+class: center
+
+```{r, echo = FALSE}
+knitr::include_graphics ("./images/ropensci-logo.svg")
+```
+
+.large[
+What does community engagement<br>with rOpenSci packages look like?
+]
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+# Analyses of git repositories
+
+```{r load-git-data, echo = FALSE, message = FALSE}
+dat_ros <- readRDS ("./data/results-ropensci.Rds")
+dat_rst <- readRDS ("./data/results-rstudio.Rds")
+source ("functions-analyse.R")
+library (dplyr)
+library (ggplot2)
+theme_set (theme_minimal ())
+```
+
+
+- *Non-Primary Contributions* = code contributions (numbers of commits) by
+  other than designated primary maintainer
+<br><br>
+
+- `r length (dat_ros)` rOpenSci repositories
+<br>
+- `r length (dat_rst)` RStudio repositories (just for comparison)
+
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+### Non-Primary Contributions to repositories
+
+```{r prop_np_commits, echo = FALSE, eval = !file.exists ("./images/prop-np-commits.png")}
+np_commits_rst <- prop_np_commits (dat_rst)
+np_commits_rst$org <- "RStudio"
+np_commits_ros <- prop_np_commits (dat_ros)
+np_commits_ros$org <- "rOpenSci"
+results <- bind_rows (np_commits_ros, np_commits_rst) %>%
+    rename (non_primary = n)
+    
+
+#theme_set (theme_minimal ())
+g <- ggplot (results, aes (date, non_primary)) +
+    geom_point (colour = "#9239F6") +
+    geom_smooth (formula = "y ~ x", colour = "#FF0076", method = "lm") +
+    scale_x_continuous (labels = round) +
+    facet_wrap (.~org) +
+    theme (axis.title.y = element_text (angle = 90),
+           rect = element_rect (fill = "transparent"),
+           panel.background = element_rect(fill = "transparent"),
+           plot.background = element_rect(fill = "transparent", color = NA),
+           strip.text.x = element_text (size = 24, colour = "#FF0076",
+                                        family = "SF Alien Encounters"),
+           strip.background = element_rect (fill = "#A8A8A8")
+           )
+png ("./images/prop-np-commits.png", width = 640, height = 480, bg = "transparent")
+print (g)
+junk <- dev.off ()
+```
+
+![](./images/prop-np-commits.png)
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+### Package prominence
+
+```{r prominence, echo = FALSE}
+x <- readRDS ("./data/cran-rstudio.Rds")
+p_rst <- unlist (lapply (split (x, as.factor (x$package)), function (i) {
+                 first <- which (i$count > 0) [1]
+                 sum (i$count) / (nrow (i) - first + 1) }))
+x <- readRDS ("./data/cran-ropensci.Rds")
+p_ros <- unlist (lapply (split (x, as.factor (x$package)), function (i) {
+                 first <- which (i$count > 0) [1]
+                 sum (i$count) / (nrow (i) - first + 1) }))
+dat_rst1 <- data.frame (package = names (p_rst),
+                        prominence = as.numeric (p_rst),
+                        org = "RStudio",
+                        stringsAsFactors = FALSE)
+dat_ros1 <- data.frame (package = names (p_ros),
+                        prominence = as.numeric (p_ros),
+                        org = "rOpenSci",
+                        stringsAsFactors = FALSE)
+dat <- rbind (dat_rst1, dat_ros1)
+dat$log_prominence <- log10 (dat$prominence)
+```
+```{r prominence-graph, echo = FALSE, eval = !file.exists ("./images/prominence.png")}
+g <- ggplot (dat, aes (x = org, y = log_prominence, fill = org)) +
+    geom_violin (alpha = 0.7) +
+    theme (axis.title.y = element_text (angle = 90),
+           rect = element_rect (fill = "transparent"),
+           panel.background = element_rect(fill = "transparent"),
+           plot.background = element_rect(fill = "transparent", color = NA))
+png ("./images/prominence.png", width = 640, height = 480, bg = "transparent")
+print (g)
+junk <- dev.off ()
+```
+
+![](./images/prominence.png)
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+### Prominence and community
+
+```{r prominence-commits, echo = FALSE, eval = !file.exists ("./images/prom-commits.png")}
+np_commits_rst <- prop_np_commits (dat_rst, quarterly = FALSE)
+np_commits_rst$org <- "RStudio"
+np_commits_ros <- prop_np_commits (dat_ros, quarterly = FALSE)
+np_commits_ros$org <- "rOpenSci"
+np_commits <- dplyr::bind_rows (np_commits_ros, np_commits_rst) %>%
+    dplyr::rename (package = repo)
+
+dat <- dplyr::left_join (dat, np_commits, by = c ("package", "org")) %>%
+    rename (non_primary = n)
+g <- ggplot (dat, aes (x = log_prominence, y = non_primary, colour = org)) +
+    geom_point () +
+    geom_smooth (formula = "y ~ x", method = "lm") +
+    theme (axis.title.y = element_text (angle = 90),
+           rect = element_rect (fill = "transparent"),
+           panel.background = element_rect(fill = "transparent"),
+           plot.background = element_rect(fill = "transparent", color = NA))
+png ("./images/prom-commits.png", width = 640, height = 480, bg = "transparent")
+print (g)
+junk <- dev.off ()
+```
+
+![](./images/prom-commits.png)
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+### Non-Primary Contributions to repositories (revisited)
+
+
+```{r authors-per-time-interval, echo = FALSE, eval = !file.exists ("./images/commits-time.png")}
+commits_rst <- stats_commits (dat_rst)
+np_commits_rst <- prop_np_commits (dat_rst)
+commits_ros <- stats_commits (dat_ros)
+np_commits_ros <- prop_np_commits (dat_ros)
+
+commits_rst$org <- "RStudio"
+commits_ros$org <- "rOpenSci"
+
+results <- rbind (commits_rst,
+                  commits_ros) %>%
+    dplyr::filter (!is.na (slope))
+
+g <- ggplot (results, aes (date, slope)) +
+    geom_point (colour = "#9239F6") +
+    geom_smooth (formula = "y ~ x", colour = "#FF0076", method = "lm") +
+    scale_x_continuous (labels = round) +
+    facet_wrap (.~org) +
+    ylab ("Non-primary contribution rate") +
+    theme (axis.title.y = element_text (angle = 90),
+           rect = element_rect (fill = "transparent"),
+           panel.background = element_rect(fill = "transparent"),
+           plot.background = element_rect(fill = "transparent", color = NA),
+           strip.text.x = element_text (size = 24, colour = "#FF0076",
+                                        family = "SF Alien Encounters"),
+           strip.background = element_rect (fill = "#A8A8A8")
+    )
+# omsplotr::adjust_colours ("#6F3460", 0.4)
+png ("./images/commits-time.png", width = 640, height = 480, bg = "transparent")
+print (g)
+junk <- dev.off ()
+```
+
+![](./images/commits-time.png)
+
+---
+class: center
+
+```{r, echo = FALSE}
+knitr::include_graphics ("./images/ropensci-logo.svg")
+```
+
+.large[
+What does community engagement<br>with rOpenSci packages look like?
+]
+
+---
+class: center
+
+```{r, echo = FALSE}
+knitr::include_graphics ("./images/ropensci-logo.svg")
+```
+
+.large[
+What can you do to engage with rOpenSci?
+]
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What can you do to engage with rOpenSci?
+
+### As a package user
+
+- Give feedback on [discuss.ropensci.org](https://discuss.ropensci.org) or via
+  github issues
+- Submit a Use Case to [discuss.ropensci.org](https://discuss.ropensci.org)
+- Participate in regular [Community Calls](https://ropensci.org/commcalls)
+- Ping @ropensci on twitter --- along with package authors
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What can you do to engage with rOpenSci?
+
+### As a developer
+
+- Read the [rOpenSci Developer Guide](https://devguide.ropensci.org/contributingguide.html)
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What can you do to engage with rOpenSci?
+
+> 15.1 Why contribute to rOpenSci packages?
+>
+> In general, as explained by Kara Woo in her talk at the CascadiaR conference,
+contributing to R packages allows you to make things work the way you want (by
+adding some functionality to your favorite package), can lead to opportunities
+and allows you to learn about package development.
+>
+> ... we strive to make contributing a good experience... we are creating
+social infrastructure through a welcoming and diverse community
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What can you do to engage with rOpenSci?
+
+### As a code contributor
+
+- Read the [rOpenSci Developer Guide](https://devguide.ropensci.org)
+- Boost the statistics for non-primary<br>contributions to our software
+- Use packages, contribute to or open<br>issues, make pull requests
+
+### As a developer
+
+- Develop your own package
+- Open a pre-submission enquiry (= issue) on
+  [github.com/ropensci/software-review](https://github.com/ropensci/software-review)
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## rOpenSci Software Categories
+
+```{r ros-registry2, echo = FALSE}
+url <- "https://ropensci.github.io/roregistry/registry.json"
+x <- jsonlite::fromJSON(url)$packages
+res <- table (x$ropensci_category)
+res <- data.frame (category = names (res),
+                   n = as.integer (res),
+                   stringsAsFactors = FALSE)
+print (res, row.names = TRUE)
+```
+
+--
+
+... but [R is a language for statistics](https://github.com/ropensci/software-review/issues/331), right?
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+class: center, middle
+
+```{r sloan, echo = FALSE, fig.width = 12, fig.height = 6}
+knitr::include_graphics ("./images/sloan.svg")
+```
+
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## rOpenSci peer-review of statistical software
+
+### Why Not? Because it's really difficult
+
+### Why? Because its really important
+
+--
+
+- The [R Validation Hub](https://www.pharmar.org/about/) are doing it, but
+  exclusively<br>for the bio-pharmaceutical industry.
+
+- We will be (co-)developing a generalised methodology
+
+--
+
+- The [R Validation Hub](https://www.pharmar.org/about/) has 44 organisations yet relatively little money
+- rOpenSci has a board of 6 members, around 1.5 full-time staff, and some money
+
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## rOpenSci peer-review of statistical software
+
+> We’ll be working with the new board and the broader statistical software
+community to develop a set of agreed-upon standards for statistical package
+implementation and testing, then launching a new peer-review process and
+testing tools. (rOpenSci blog 15 July 2019)
+
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## rOpenSci peer-review of statistical software
+
+### ~~Why Not? Because~~ it's really difficult
+
+--
+
+.left-column[
+- Bayesian & Monte Carlo
+- Dimensionality & Feature Reduction
+- Machine Learning
+- Regression, Splines, & Interpolation
+- Statistical Indices and Scores
+- Visualisation
+- Probability Distributions
+]
+
+.right-column[
+- Wrapper Packages
+- Categorical Variables
+- Networks
+- Exploratory Data Analysis (EDA)
+- Survival Analysis
+- Workflow Software
+- Summary Statistics
+- Spatial Analysis
+- Educational Software
+]
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## rOpenSci peer-review of statistical software
+
+> We’ll be working with the new board and the broader statistical software
+community to develop a set of agreed-upon standards for statistical package
+implementation and testing, then launching a new peer-review process and
+testing tools. (rOpenSci blog 15 July 2019)
+
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## rOpenSci peer-review of statistical software
+
+"agreed-upon standards for statistical package implementation and testing"
+
+.left-column[
+- Bayesian & Monte Carlo
+- Dimensionality & Feature Reduction
+- Machine Learning
+- Regression, Splines, & Interpolation
+- Statistical Indices and Scores
+- Visualisation
+- Probability Distributions
+]
+
+.right-column[
+- Wrapper Packages
+- Categorical Variables
+- Networks
+- Exploratory Data Analysis (EDA)
+- Survival Analysis
+- Workflow Software
+- Summary Statistics
+- Spatial Analysis
+- Educational Software
+]
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## rOpenSci peer-review of statistical software
+
+"agreed-upon standards for ~~statistical package implementation and~~ testing"
+
+.left-column[
+- Bayesian & Monte Carlo
+- Dimensionality & Feature Reduction
+- Machine Learning
+- Regression, Splines, & Interpolation
+- Statistical Indices and Scores
+- Visualisation
+- Probability Distributions
+]
+
+.right-column[
+- Wrapper Packages
+- Categorical Variables
+- Networks
+- Exploratory Data Analysis (EDA)
+- Survival Analysis
+- Workflow Software
+- Summary Statistics
+- Spatial Analysis
+- Educational Software
+]
+
+
+---
+background-image: url(images/ropensci-bg-dark.png)
+background-size: contain
+background-position: 0% 50%
+class: inverse
+
+# TESTING
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What is testing?
+
+- Unit Testing
+
+- Functional Testing
+
+- Integration Testing
+
+- Regression Testing
+
+- Lots of other types
+
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What is testing?
+
+- Unit Testing
+
+What is a "Unit" in R code? Or in an R package?
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What is testing? - Alternative approaches
+
+### Concrete Testing
+
+Testing of concrete inputs and outputs
+
+### Property-based Testing
+
+Testing functional responses based on the general *properties* of their inputs
+and outputs
+
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What is testing? - Alternative approaches
+
+### Concrete Testing
+
+- inbuilt in `rust` (the benchmark)
+
+- python via `pytest` and lots of other packages
+
+- R via `testthat` and a few other packages
+
+### Property-based Testing
+
+- `python` via [`hypothesis`](https://hypothesis.works/) (the benchmark)
+
+- `rust` via [`quickcheck`](https://github.com/BurntSushi/quickcheck),
+  [`proptest`](https://lib.rs/crates/proptest), and others
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What might property-based testing look like?
+
+### Typical `roxygen` function documentation lines
+
+```{r testing-ex1, eval = FALSE}
+#' @param x The first input
+#' @param y The second input
+#' @param z The third and last input
+#' @return The output value
+#' @export
+f <- function(x, y, z) {
+    # function definition
+}
+```
+
+--
+
+`roxygen2` is extensible, and the [`roxytest`
+package](https://github.com/mikldk/roxytest) enables concrete tests to be
+specified directly in function documentation.
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What might property-based testing look like?
+
+### Typical `roxygen` function documentation<br>plus property-based testing lines
+
+```{r testing-ex2, eval = FALSE}
+#' @param x The first input
+#' @param y The second input
+#' @param z The third and last input
+#' @return The output value
+#' @export
+#'
+#' @given x integer
+#' @given y numeric
+#' @given z character
+#' @expect is.integer(f(x, y, z))
+#' @expect length(f(x, y, z)) == 1
+f <- function(x, y, z) {
+    # function definition
+}
+```
+
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What might property-based testing look like?
+
+```{r testing-ex4, eval = FALSE}
+f <- function(x, y, z) {
+    # function definition
+}
+imax <- .Machine$integer.max # something like 2,147,483,647
+nmax <- .Machine$double.xmax # something around 10 ^ 308
+for (i in seq(ntrials)) {
+    tryCatch (
+        res <- f(runif(1, min = -imax, max = imax),
+                 rnorm(1, min = -nmax, max = nmax),
+                 z = "<string>"),
+              error = function(e) e
+              )
+}
+```
+
+Property-based testing tests responses<br>to ranges of input values
+
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What might property-based testing look like?
+
+```{r testing-ex5, eval = FALSE}
+f <- function(x, y, z) {
+    # function definition
+}
+imax <- .Machine$integer.max # something like 2,147,483,647
+nmax <- .Machine$double.xmax # something around 10 ^ 308
+for (i in seq(ntrials)) {
+    tryCatch (
+        res <- f(runif(runif(1e6), min = -imax, max = imax),
+                 rnorm(runif(1e6), min = -nmax, max = nmax),
+                 z = "<string>"),
+              error = function(e) e
+              )
+}
+```
+
+Property-based testing tests responses<br>to structures of input values
+
+
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What might property-based testing look like?
+
+```{r testing-ex6, eval = FALSE}
+#' @given x integer
+#' @given y numeric
+#' @given z character
+#' @given length(x) <= 10
+#' @given res = f(x, y, z)
+#' @expect res is silent
+f <- function(x, y, z) {
+    # function definition
+}
+```
+
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What might property-based testing look like?
+
+```{r testing-ex7, eval = FALSE}
+#' @given x integer
+#' @given y numeric
+#' @given z character
+#' @given length(x) <= 10
+#' @given res = f(x, y, z)
+#' @expect res is silent
+#'
+#' @given length(x) == 10
+#' @given res = f(x, y, z)
+#' @expect res is silent
+#' @report res is error
+f <- function(x, y, z) {
+    # function definition
+}
+```
+
+- Bug reports use the same grammar as tests
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What might property-based testing look like?
+
+```{r testing-ex8, eval = FALSE}
+#' @given x integer
+#' @given y numeric
+#' @given z character
+#' @given length(x) <= 10
+#' @given res = f(x, y, z)
+#' @expect res is silent
+#'
+#' @given viz = TRUE
+#' @report f(x, y, z, viz) is error
+#' @request f(x, y, z, viz) produces interactive graphical output
+f <- function(x, y, z, int) {
+    # function definition
+}
+```
+
+- Feature requests use the same grammar as tests
+
+--
+
+- Feature requests are pull requests are direct code contributions
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+### Non-Primary Contributions to repositories (revisited)
+
+![](./images/commits-time.png)
+
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What might property-based testing look like?
+
+```{r testing-ex9, eval = FALSE}
+#' @given x integer
+#' @given y numeric
+#' @given z character
+#' @given length(x) <= 10
+#' @given res = f(x, y, z)
+#' @expect res is silent
+#'
+#' @given viz = TRUE
+#' @report f(x, y, z, viz) is error
+#' @request f(x, y, z, viz) produces interactive graphical output
+f <- function(x, y, z, int) {
+    # function definition
+}
+```
+
+- Feature requests use the same grammar as tests
+
+- Feature requests are pull requests are direct code contributions
+
+---
+background-image: url(images/ropensci-bg.svg)
+background-size: contain
+background-position: 0% 50%
+
+## What might property-based testing look like?
+
+- [cucumber.io](https://cucumber.io)
+
+- Lots of prior work
+
+- Efforts underway to incorporate/adapt within python
+
+- R is an opportunity in waiting
+
+--
+
+## Property-based testing can build community
+
+
+---
+background-image: url(images/ropensci-bg-dark.png)
+background-size: contain
+background-position: 0% 50%
+class: left, middle, inverse
+
+## Please Help! Please Contribute!
+
+
+.left-column[
+`r icon::fa_github(size = 2, animate = "spin")` mpadge
+
+`r icon::fa_github(size = 2, animate = "spin")` ropensci
+]
+
+.right-column[
+`r icon::fa_twitter(size = 2, animate = "spin")` bikesRdata
+
+`r icon::fa_envelope(size = 1)` .small[mark@ropensci.org]<br><br>
+
+`r icon::ii_ios_world_outline(size = 5)` mpadge.github.io
+]
+
+
+.box-bottom[
+slides at <br>
+[https://github.com/mpadge/satRday-neuchatel-2020](https://github.com/mpadge/satRday-neuchatel-2020)
+]
+
