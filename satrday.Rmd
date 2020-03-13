@@ -878,6 +878,8 @@ class: left, middle, inverse
 
 ## Please Help! Please Contribute!
 
+## [Community Call](https://ropensci.org/commcalls/): Wed 18th March
+
 
 .left-column[
 `r icon::fa_github(size = 2, animate = "spin")` mpadge
