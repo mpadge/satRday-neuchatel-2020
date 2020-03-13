@@ -355,23 +355,6 @@ class: inverse
 
 # TESTING
 
----
-background-image: url(images/ropensci-bg.svg)
-background-size: contain
-background-position: 0% 50%
-
-## What is testing?
-
-- Unit Testing
-
-- Functional Testing
-
-- Integration Testing
-
-- Regression Testing
-
-- Lots of other types
-
 
 ---
 background-image: url(images/ropensci-bg.svg)
@@ -379,17 +362,6 @@ background-size: contain
 background-position: 0% 50%
 
 ## What is testing?
-
-- Unit Testing
-
-What is a "Unit" in R code? Or in an R package?
-
----
-background-image: url(images/ropensci-bg.svg)
-background-size: contain
-background-position: 0% 50%
-
-## What is testing? - Alternative approaches
 
 ### Concrete Testing
 
@@ -489,10 +461,10 @@ f <- function(x, y, z) {
 }
 
 for (i in seq(ntrials)) {
+    x <- ceiling(runif(1, min = -Inf, max = Inf))
+    y <- runif(1, min = -Inf, max = Inf)
     tryCatch (
-        res <- f(runif(1, min = -Inf, max = Inf),
-                 rnorm(1, min = -Inf, max = Inf),
-                 z = "<string>"),
+        res <- f(x, y, z = "<string>"),
               error = function(e) e
               )
 }
@@ -515,9 +487,10 @@ f <- function(x, y, z) {
 
 for (i in seq(ntrials)) {
     tryCatch (
-        res <- f(runif(runif(1e6), min = -Inf, max = Inf),
-                 rnorm(runif(1e6), min = -Inf, max = Inf),
-                 z = "<string>"),
+        len <- ceiling(runif(1e6))
+        x <- ceiling(runif(len, min = -Inf, max = Inf))
+        y <- runif(1, min = -Inf, max = Inf)
+        res <- f(x, y, z = "<string>"),
               error = function(e) e
               )
 }
