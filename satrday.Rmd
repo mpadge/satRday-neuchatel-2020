@@ -105,206 +105,6 @@ knitr::include_graphics ("./images/ropensci-logo.svg")
 ```
 
 .large[
-What does community engagement<br>with rOpenSci packages look like?
-]
-
----
-background-image: url(images/ropensci-bg.svg)
-background-size: contain
-background-position: 0% 50%
-
-# Analyses of git repositories
-
-```{r load-git-data, echo = FALSE, message = FALSE}
-dat_ros <- readRDS ("./data/results-ropensci.Rds")
-dat_rst <- readRDS ("./data/results-rstudio.Rds")
-source ("functions-analyse.R")
-library (dplyr)
-library (ggplot2)
-theme_set (theme_minimal ())
-```
-
-
-- *Non-Primary Contributions* = code contributions (numbers of commits) by
-  other than designated primary maintainer
-<br><br>
-
-- `r length (dat_ros)` rOpenSci repositories
-<br>
-- `r length (dat_rst)` RStudio repositories (just for comparison)
-
-
----
-background-image: url(images/ropensci-bg.svg)
-background-size: contain
-background-position: 0% 50%
-
-### Non-Primary Contributions to repositories
-
-```{r prop_np_commits, echo = FALSE, eval = !file.exists ("./images/prop-np-commits.png")}
-np_commits_rst <- prop_np_commits (dat_rst)
-np_commits_rst$org <- "RStudio"
-np_commits_ros <- prop_np_commits (dat_ros)
-np_commits_ros$org <- "rOpenSci"
-results <- bind_rows (np_commits_ros, np_commits_rst) %>%
-    rename (non_primary = n)
-    
-
-#theme_set (theme_minimal ())
-g <- ggplot (results, aes (date, non_primary)) +
-    geom_point (colour = "#9239F6") +
-    geom_smooth (formula = "y ~ x", colour = "#FF0076", method = "lm") +
-    scale_x_continuous (labels = round) +
-    facet_wrap (.~org) +
-    theme (axis.title.y = element_text (angle = 90),
-           rect = element_rect (fill = "transparent"),
-           panel.background = element_rect(fill = "transparent"),
-           plot.background = element_rect(fill = "transparent", color = NA),
-           strip.text.x = element_text (size = 24, colour = "#FF0076",
-                                        family = "SF Alien Encounters"),
-           strip.background = element_rect (fill = "#A8A8A8")
-           )
-png ("./images/prop-np-commits.png", width = 640, height = 480, bg = "transparent")
-print (g)
-junk <- dev.off ()
-```
-
-![](./images/prop-np-commits.png)
-
----
-background-image: url(images/ropensci-bg.svg)
-background-size: contain
-background-position: 0% 50%
-
-### Package prominence
-
-```{r prominence, echo = FALSE}
-x <- readRDS ("./data/cran-rstudio.Rds")
-p_rst <- unlist (lapply (split (x, as.factor (x$package)), function (i) {
-                 first <- which (i$count > 0) [1]
-                 sum (i$count) / (nrow (i) - first + 1) }))
-x <- readRDS ("./data/cran-ropensci.Rds")
-p_ros <- unlist (lapply (split (x, as.factor (x$package)), function (i) {
-                 first <- which (i$count > 0) [1]
-                 sum (i$count) / (nrow (i) - first + 1) }))
-dat_rst1 <- data.frame (package = names (p_rst),
-                        prominence = as.numeric (p_rst),
-                        org = "RStudio",
-                        stringsAsFactors = FALSE)
-dat_ros1 <- data.frame (package = names (p_ros),
-                        prominence = as.numeric (p_ros),
-                        org = "rOpenSci",
-                        stringsAsFactors = FALSE)
-dat <- rbind (dat_rst1, dat_ros1)
-dat$log_prominence <- log10 (dat$prominence)
-```
-```{r prominence-graph, echo = FALSE, eval = !file.exists ("./images/prominence.png")}
-g <- ggplot (dat, aes (x = org, y = log_prominence, fill = org)) +
-    geom_violin (alpha = 0.7) +
-    theme (axis.title.y = element_text (angle = 90),
-           rect = element_rect (fill = "transparent"),
-           panel.background = element_rect(fill = "transparent"),
-           plot.background = element_rect(fill = "transparent", color = NA))
-png ("./images/prominence.png", width = 640, height = 480, bg = "transparent")
-print (g)
-junk <- dev.off ()
-```
-
-![](./images/prominence.png)
-
----
-background-image: url(images/ropensci-bg.svg)
-background-size: contain
-background-position: 0% 50%
-
-### Prominence and community
-
-```{r prominence-commits, echo = FALSE, eval = !file.exists ("./images/prom-commits.png")}
-np_commits_rst <- prop_np_commits (dat_rst, quarterly = FALSE)
-np_commits_rst$org <- "RStudio"
-np_commits_ros <- prop_np_commits (dat_ros, quarterly = FALSE)
-np_commits_ros$org <- "rOpenSci"
-np_commits <- dplyr::bind_rows (np_commits_ros, np_commits_rst) %>%
-    dplyr::rename (package = repo)
-
-dat <- dplyr::left_join (dat, np_commits, by = c ("package", "org")) %>%
-    rename (non_primary = n)
-g <- ggplot (dat, aes (x = log_prominence, y = non_primary, colour = org)) +
-    geom_point () +
-    geom_smooth (formula = "y ~ x", method = "lm") +
-    theme (axis.title.y = element_text (angle = 90),
-           rect = element_rect (fill = "transparent"),
-           panel.background = element_rect(fill = "transparent"),
-           plot.background = element_rect(fill = "transparent", color = NA))
-png ("./images/prom-commits.png", width = 640, height = 480, bg = "transparent")
-print (g)
-junk <- dev.off ()
-```
-
-![](./images/prom-commits.png)
-
----
-background-image: url(images/ropensci-bg.svg)
-background-size: contain
-background-position: 0% 50%
-
-### Non-Primary Contributions to repositories (revisited)
-
-
-```{r authors-per-time-interval, echo = FALSE, eval = !file.exists ("./images/commits-time.png")}
-commits_rst <- stats_commits (dat_rst)
-np_commits_rst <- prop_np_commits (dat_rst)
-commits_ros <- stats_commits (dat_ros)
-np_commits_ros <- prop_np_commits (dat_ros)
-
-commits_rst$org <- "RStudio"
-commits_ros$org <- "rOpenSci"
-
-results <- rbind (commits_rst,
-                  commits_ros) %>%
-    dplyr::filter (!is.na (slope))
-
-g <- ggplot (results, aes (date, slope)) +
-    geom_point (colour = "#9239F6") +
-    geom_smooth (formula = "y ~ x", colour = "#FF0076", method = "lm") +
-    scale_x_continuous (labels = round) +
-    facet_wrap (.~org) +
-    ylab ("Non-primary contribution rate") +
-    theme (axis.title.y = element_text (angle = 90),
-           rect = element_rect (fill = "transparent"),
-           panel.background = element_rect(fill = "transparent"),
-           plot.background = element_rect(fill = "transparent", color = NA),
-           strip.text.x = element_text (size = 24, colour = "#FF0076",
-                                        family = "SF Alien Encounters"),
-           strip.background = element_rect (fill = "#A8A8A8")
-    )
-# omsplotr::adjust_colours ("#6F3460", 0.4)
-png ("./images/commits-time.png", width = 640, height = 480, bg = "transparent")
-print (g)
-junk <- dev.off ()
-```
-
-![](./images/commits-time.png)
-
----
-class: center
-
-```{r, echo = FALSE}
-knitr::include_graphics ("./images/ropensci-logo.svg")
-```
-
-.large[
-What does community engagement<br>with rOpenSci packages look like?
-]
-
----
-class: center
-
-```{r, echo = FALSE}
-knitr::include_graphics ("./images/ropensci-logo.svg")
-```
-
-.large[
 What can you do to engage with rOpenSci?
 ]
 
@@ -361,7 +161,6 @@ background-position: 0% 50%
 ### As a code contributor
 
 - Read the [rOpenSci Developer Guide](https://devguide.ropensci.org)
-- Boost the statistics for non-primary<br>contributions to our software
 - Use packages, contribute to or open<br>issues, make pull requests
 
 ### As a developer
@@ -611,11 +410,11 @@ background-position: 0% 50%
 
 ### Concrete Testing
 
-- inbuilt in `rust` (the benchmark)
+- R via `testthat` and a few other packages
 
 - python via `pytest` and lots of other packages
 
-- R via `testthat` and a few other packages
+- inbuilt in `rust` (the benchmark)
 
 ### Property-based Testing
 
@@ -808,52 +607,15 @@ background-image: url(images/ropensci-bg.svg)
 background-size: contain
 background-position: 0% 50%
 
-### Non-Primary Contributions to repositories (revisited)
-
-![](./images/commits-time.png)
-
-
----
-background-image: url(images/ropensci-bg.svg)
-background-size: contain
-background-position: 0% 50%
-
 ## What might property-based testing look like?
-
-```{r testing-ex9, eval = FALSE}
-#' @given x integer
-#' @given y numeric
-#' @given z character
-#' @given length(x) <= 10
-#' @given res = f(x, y, z)
-#' @expect res is silent
-#'
-#' @given viz = TRUE
-#' @report f(x, y, z, viz) is error
-#' @request f(x, y, z, viz) produces interactive graphical output
-f <- function(x, y, z, int) {
-    # function definition
-}
-```
-
-- Feature requests use the same grammar as tests
-
-- Feature requests are pull requests are direct code contributions
-
----
-background-image: url(images/ropensci-bg.svg)
-background-size: contain
-background-position: 0% 50%
-
-## What might property-based testing look like?
-
-- [cucumber.io](https://cucumber.io)
 
 - Lots of prior work
 
 - Efforts underway to incorporate/adapt within python
 
 - R is an opportunity in waiting
+
+- [cucumber.io](https://cucumber.io)
 
 --
 
