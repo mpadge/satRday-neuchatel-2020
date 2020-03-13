@@ -1,13 +1,16 @@
 LFILE = satrday
-SETUPFILE = setup-script
+IFILE = index
 
-all: knith #open
+all: knith move #open
 
 knith: $(LFILE).Rmd
 	echo "rmarkdown::render('$(LFILE).Rmd',output_file='$(LFILE).html')" | R --no-save -q
 
-open: $(LFILE).html
-	xdg-open $(LFILE).html &
+move: $(LFILE).html
+	mv $(LFILE).html $(IFILE).html
+
+open: $(IFILE).html
+	xdg-open $(IFILE).html &
 
 clean:
 	rm -rf *.html xaringan-themer.css *_cache *_files libs
