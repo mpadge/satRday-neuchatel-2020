@@ -165,6 +165,7 @@ background-position: 0% 50%
 
 ### As a developer
 
+- Offer to help with / help maintain a package
 - Develop your own package
 - Open a pre-submission enquiry (= issue) on
   [github.com/ropensci/software-review](https://github.com/ropensci/software-review)
